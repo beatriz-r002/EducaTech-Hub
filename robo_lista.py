@@ -12,28 +12,23 @@ def extrair_lista_afiliado():
     novos_produtos = []
     
     with sync_playwright() as p:
-        # Iniciamos com headless=False para você ver o navegador abrindo e acompanhando o que acontece
+        # Iniciamos com headless=False para você ver o navegador abrindo
         browser = p.chromium.launch(headless=False)
         page = browser.new_page()
         
         try:
             print(f"Acessando a página e aguardando carregamento...")
-            # Usa 'networkidle' para garantir que a página terminou de carregar os redirecionamentos e scripts
             page.goto(URL_MINHA_LISTA, timeout=60000, wait_until="networkidle")
             
             print("Página aberta com sucesso! Buscando produtos na tela...")
-            
-            # Dá um tempinho extra para garantir que os cards renderizaram
             page.wait_for_timeout(3000)
             
-            # Vamos tentar capturar os cards usando seletores genéricos robustos do Mercado Livre
-            # O ML costuma usar tags como .ui-search-layout__item ou .poly-card
             cards = page.locator(".poly-card, .ui-search-layout__item, .andes-card").all()
             
             if not cards:
                 print("⚠️ Nenhum card padrão encontrado. Tirando print para diagnóstico...")
                 page.screenshot(path="erro_pagina.png")
-                print("Um print 'erro_pagina.png' foi salvo na pasta para você ver o que o robô enxergou.")
+                print("Um print 'erro_pagina.png' foi salvo na pasta.")
                 return
 
             print(f"Encontrados {len(cards)} produtos. Extraindo dados...")
@@ -42,23 +37,40 @@ def extrair_lista_afiliado():
                 try:
                     titulo = card.locator("h2, .poly-component__title, .ui-search-item__title").inner_text()
                     
-                    # Captura correta de preço com centavos
-                    parte_inteira = card.locator(".andes-money-amount__fraction").first.inner_text().replace(".", "")
+                    # No Mercado Livre, o preço atual (promocional/destacado) geralmente fica dentro de .poly-price__current
+                    # Vamos buscar especificamente o bloco de preço atual
+                    bloco_preco_atual = card.locator(".poly-price__current, .ui-search-price__second-line").first
+                    
+                    parte_inteira_atual = bloco_preco_atual.locator(".andes-money-amount__fraction").inner_text().replace(".", "")
                     try:
-                        centavos = card.locator(".andes-money-amount__cents").first.inner_text()
+                        centavos_atual = bloco_preco_atual.locator(".andes-money-amount__cents").inner_text()
                     except:
-                        centavos = "00"
-                    
-                    preco_atual = float(f"{parte_inteira}.{centavos}")
-                    
+                        centavos_atual = "00"
+                    preco_atual = float(f"{parte_inteira_atual}.{centavos_atual}")
+
+                    # Tenta capturar o preço antigo (riscado) que costuma vir acima do preço atual na listagem
+                    try:
+                        bloco_preco_antigo = card.locator("s.andes-money-amount, .ui-search-price__original-value").first
+                        parte_inteira_antigo = bloco_preco_antigo.locator(".andes-money-amount__fraction").inner_text().replace(".", "")
+                        try:
+                            centavos_antigo = bloco_preco_antigo.locator(".andes-money-amount__cents").inner_text()
+                        except:
+                            centavos_antigo = "00"
+                        preco_antigo = float(f"{parte_inteira_antigo}.{centavos_antigo}")
+                    except:
+                        # Se não houver preço riscado oficial na listagem, calcula uma margem de 15% acima
+                        preco_antigo = round(preco_atual * 1.15, 2)
+
+                    # Garante que se por acaso inverter, o preço antigo seja sempre maior que o atual
+                    if preco_antigo <= preco_atual:
+                        preco_antigo = round(preco_atual * 1.15, 2)
+
+                    # Captura o link e a imagem
                     link = card.locator("a").first.get_attribute("href")
-                    
                     imagem = card.locator("img").first.get_attribute("src")
                     if not imagem:
                         imagem = card.locator("img").first.get_attribute("data-src")
-                        
-                    preco_antigo = round(preco_atual * 1.15, 2)
-                    
+
                     produto = {
                         "titulo": titulo,
                         "precoAntigo": preco_antigo,
@@ -82,35 +94,11 @@ def extrair_lista_afiliado():
         print("⚠️ Nenhum produto foi extraído com sucesso.")
 
 def atualizar_json(novos):
-    if os.path.exists(ARQUIVO_JSON):
-        with open(ARQUIVO_JSON, "r", encoding="utf-8") as f:
-            atuais = json.load(f)
-    else:
-        atuais = []
-
-    for novo in novos:
-        existe = False
-        for p in atuais:
-            if p["titulo"] == novo["titulo"]:
-                p["precoAtual"] = novo["precoAtual"]
-                p["link"] = novo["link"]
-                existe = True
-                break
-        if not existe:
-            atuais.append(novo)
-
-    with open(ARQUIVO_JSON, "w", encoding="utf-8") as f:
-        json.dump(atuais, f, ensure_ascii=False, indent=4)
-    
-    print("✨ Arquivo produtos.json atualizado com sucesso pelo robô!")
-
-if __name__ == "__main__":
-    extrair_lista_afiliado()
-
-def atualizar_json(novos):
-    # Em vez de ler o antigo e mesclar, nós salvamos DIRETAMENTE a nova lista 
-    # garantindo que só exista no site o que está na sua lista oficial do Mercado Livre agora!
+    # Sobrescreve o JSON garantindo que só fiquem os itens atuais da sua lista
     with open(ARQUIVO_JSON, "w", encoding="utf-8") as f:
         json.dump(novos, f, ensure_ascii=False, indent=4)
     
     print(f"✨ Sucesso! O arquivo produtos.json foi sincronizado com {len(novos)} produtos da sua lista.")
+
+if __name__ == "__main__":
+    extrair_lista_afiliado()
