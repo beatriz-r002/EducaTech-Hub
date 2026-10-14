@@ -32,6 +32,18 @@
             padding: 30px 20px;
             border-bottom: 1px solid #333;
             background-color: #181818;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #ffc107;
+            object-fit: cover;
         }
 
         header h1 {
@@ -109,6 +121,7 @@
             font-size: 0.8rem;
             font-weight: bold;
             border-radius: 4px;
+            z-index: 2;
         }
 
         .card img {
@@ -175,115 +188,71 @@
 </head>
 <body>
 
-    <header style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <img src="logo.jpg" alt="Educatech Hub Logo" style="width: 100px; height: 100px; border-radius: 50%; border: 2px solid #ffc107; object-fit: cover;">
+    <header>
+        <img src="logo.jpg" alt="Educatech Hub Logo">
         <h1>Educatech Hub</h1>
         <p>O acervo definitivo para mentes brilhantes e estudantes performáticos.</p>
     </header>
 
     <div class="nav-tabs">
-        <button class="tab-btn active" onclick="filterCategory('todos')">🔥 Todos</button>
-        <button class="tab-btn" onclick="filterCategory('recentes')">✨ Recentes</button>
-        <button class="tab-btn" onclick="filterCategory('quentes')">⚡ Mais Quentes</button>
-        <button class="tab-btn" onclick="filterCategory('xadrez')">♟️ Xadrez & Performance</button>
-        <button class="tab-btn" onclick="filterCategory('papelaria')">📚 Papelaria Cult</button>
+        <button class="tab-btn active" onclick="filterCategory('todos', event)">🔥 Todos</button>
+        <button class="tab-btn" onclick="filterCategory('recentes', event)">✨ Recentes</button>
+        <button class="tab-btn" onclick="filterCategory('quentes', event)">⚡ Mais Quentes</button>
+        <button class="tab-btn" onclick="filterCategory('xadrez', event)">♟️ Xadrez & Performance</button>
+        <button class="tab-btn" onclick="filterCategory('papelaria', event)">📚 Papelaria Cult</button>
     </div>
 
     <div class="container">
-        <div class="grid" id="product-grid">
-            <!-- Produto 1: Tabuleiro de Xadrez -->
-            <div class="card" data-category="xadrez quentes">
-                <span class="badge">-12%</span>
-                <img src="img/tabuleiro.webp" alt="Jogo de Tabuleiro 3 em 1">
-                <div class="card-body">
-                    <span class="store-tag">Mercado Livre</span>
-                    <h3 class="card-title">Jogo de Tabuleiro 3 em 1: Xadrez, Dama e Gamão em Madeira Dobrável 30cm</h3>
-                    <div class="price-box">
-                        <span class="old-price">R$ <span class="old-price-val">65,99</span></span>
-                        <div class="current-price">R$ <span class="current-price-val">58,07</span></div>
-                    </div>
-                    <a href="https://meli.la/1u6bZsT" target="_blank" class="buy-btn">Ver Oferta</a>
-                </div>
-            </div>
-
-            <!-- Produto 2: Caderno Inteligente -->
-            <div class="card" data-category="papelaria recentes">
-                <span class="badge">-31%</span>
-                <img src="img/caderno.webp" alt="Caderno Inteligente">
-                <div class="card-body">
-                    <span class="store-tag">Mercado Livre</span>
-                    <h3 class="card-title">Caderno Inteligente Grande Capa Dura Universitário Escolar</h3>
-                    <div class="price-box">
-                        <span class="old-price">R$ <span class="old-price-val">69,90</span></span>
-                        <div class="current-price">R$ <span class="current-price-val">47,90</span></div>
-                    </div>
-                    <a href="https://meli.la/1oXcsBf" target="_blank" class="buy-btn">Ver Oferta</a>
-                </div>
-            </div>
-
-            <!-- Produto 3: Luminária Articulável -->
-            <div class="card" data-category="quentes recentes">
-                <span class="badge">-8%</span>
-                <img src="img/luminaria.webp" alt="Luminária Articulável">
-                <div class="card-body">
-                    <span class="store-tag">Mercado Livre</span>
-                    <h3 class="card-title">Luminária Articulável com Porta Lápis, Caneta e Suporte de Celular</h3>
-                    <div class="price-box">
-                        <span class="old-price">R$ <span class="old-price-val">64,90</span></span>
-                        <div class="current-price">R$ <span class="current-price-val">59,80</span></div>
-                    </div>
-                    <a href="https://meli.la/2Cvgbxq" target="_blank" class="buy-btn">Ver Oferta</a>
-                </div>
-            </div>
-        </div>
+        <!-- A grade carrega os produtos automaticamente do arquivo produtos.json -->
+        <div class="grid" id="product-grid"></div>
     </div>
     
     <script>
-        // Função simples apenas para simular a troca de abas dinamicamente
-        function filterCategory(category) {
-            const buttons = document.querySelectorAll('.tab-btn');
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        // Função para carregar os produtos do arquivo JSON e montar a página
+        async function carregarProdutos() {
+            try {
+                const response = await fetch('produtos.json');
+                const produtos = await response.json();
+                
+                const grid = document.getElementById('product-grid');
+                grid.innerHTML = ''; // Limpa a grade
 
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                const categories = card.getAttribute('data-category');
-                if (category === 'todos' || categories.includes(category)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+                produtos.forEach(prod => {
+                    // Calcula a porcentagem de desconto automaticamente
+                    const desconto = Math.round(((prod.precoAntigo - prod.precoAtual) / prod.precoAntigo) * 100);
+
+                    // Formata os preços para o padrão brasileiro (R$ XX,XX)
+                    const precoAntigoFormatado = prod.precoAntigo.toFixed(2).replace('.', ',');
+                    const precoAtualFormatado = prod.precoAtual.toFixed(2).replace('.', ',');
+
+                    // Cria o HTML do card dinamicamente
+                    const cardHTML = `
+                        <div class="card" data-category="${prod.categoria}">
+                            <span class="badge">-${desconto}%</span>
+                            <img src="${prod.imagem}" alt="${prod.titulo}">
+                            <div class="card-body">
+                                <span class="store-tag">Mercado Livre</span>
+                                <h3 class="card-title">${prod.titulo}</h3>
+                                <div class="price-box">
+                                    <span class="old-price">R$ ${precoAntigoFormatado}</span>
+                                    <div class="current-price">R$ ${precoAtualFormatado}</div>
+                                </div>
+                                <a href="${prod.link}" target="_blank" class="buy-fn buy-btn">Ver Oferta</a>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += cardHTML;
+                });
+            } catch (error) {
+                console.error("Erro ao carregar os produtos:", error);
+            }
         }
-    </script>
-    <script>
-        // Função para calcular o desconto automaticamente em todos os cards
-        function calcularDescontosAutomaticos() {
-            const cards = document.querySelectorAll('.card');
 
-            cards.forEach(card => {
-                const oldPriceEl = card.querySelector('.old-price-val');
-                const currentPriceEl = card.querySelector('.current-price-val');
-                const badgeEl = card.querySelector('.badge');
+        // Executa assim que a página carrega
+        window.onload = carregarProdutos;
 
-                if (oldPriceEl && currentPriceEl && badgeEl) {
-                    // Substitui a vírgula por ponto para o JavaScript conseguir fazer a conta matematicamente
-                    const oldPrice = parseFloat(oldPriceEl.textContent.replace(',', '.'));
-                    const currentPrice = parseFloat(currentPriceEl.textContent.replace(',', '.'));
-
-                    if (oldPrice > 0 && currentPrice > 0 && oldPrice > currentPrice) {
-                        const desconto = ((oldPrice - currentPrice) / oldPrice) * 100;
-                        badgeEl.textContent = `-${Math.round(desconto)}%`;
-                    }
-                }
-            });
-        }
-
-        // Executa a função assim que a página é aberta
-        window.onload = calcularDescontosAutomaticos;
-
-        // Função de filtro por categoria (que já tínhamos)
-        function filterCategory(category) {
+        // Função de filtro por categoria
+        function filterCategory(category, event) {
             const buttons = document.querySelectorAll('.tab-btn');
             buttons.forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
