@@ -196,10 +196,10 @@
 
     <div class="nav-tabs">
         <button class="tab-btn active" onclick="filterCategory('todos', event)">🔥 Todos</button>
-        <button class="tab-btn" onclick="filterCategory('recentes', event)">🎲 Jogos</button>
-        <button class="tab-btn" onclick="filterCategory('quentes', event)">👁️ Visual</button>
-        <button class="tab-btn" onclick="filterCategory('quentes', event)">⚡ Alta Performance</button>
-        <button class="tab-btn" onclick="filterCategory('quentes', event)">🏛️ Arquitetura de Mesa</button>
+        <button class="tab-btn" onclick="filterCategory('jogos', event)">🎲 Jogos</button>
+        <button class="tab-btn" onclick="filterCategory('visual', event)">👁️ Visual</button>
+        <button class="tab-btn" onclick="filterCategory('alta performance', event)">⚡ Alta Performance</button>
+        <button class="tab-btn" onclick="filterCategory('arquitetura de mesa', event)">🏛️ Arquitetura de Mesa</button>
 
     </div>
 
@@ -256,12 +256,12 @@
         function filterCategory(category, event) {
             const buttons = document.querySelectorAll('.tab-btn');
             buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            event.currentTarget.classList.add('active');
 
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
                 const categories = card.getAttribute('data-category');
-                if (category === 'todos' || categories.includes(category)) {
+                if (category === 'todos' || categories === category) {
                     card.style.display = 'block';
                 } else {
                     card.style.display = 'none';

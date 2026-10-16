@@ -39,8 +39,22 @@ def adicionar_produto():
     imagem = input("Caminho ou URL da imagem (ex: img/esp32.webp ou link): ").strip()
     link = input("Seu Link de Afiliado do Mercado Livre: ").strip()
     
-    print("\nCategorias disponíveis: quentes, recentes, xadrez, papelaria")
-    categoria = input("Categorias separadas por espaço (ex: quentes recentes): ").strip()
+    categorias_disponiveis = {
+        "1": "visual",
+        "2": "alta performance",
+        "3": "jogos",
+        "4": "arquitetura de mesa",
+        "5": "revisar",
+    }
+    print("\nCategorias disponíveis:")
+    for numero, nome in categorias_disponiveis.items():
+        sufixo = " (aparece apenas em Todos)" if nome == "revisar" else ""
+        print(f"{numero}. {nome}{sufixo}")
+    opcao_categoria = input("Escolha uma categoria (1-5): ").strip()
+    categoria = categorias_disponiveis.get(opcao_categoria)
+    if categoria is None:
+        print("Erro: Escolha uma das categorias listadas.")
+        return
 
     novo_produto = {
         "titulo": titulo,
@@ -48,7 +62,7 @@ def adicionar_produto():
         "precoAtual": preco_atual,
         "imagem": imagem,
         "link": link,
-        "categoria": categoria if categoria else "quentes recentes"
+        "categoria": categoria
     }
 
     produtos = carregar_produtos()
