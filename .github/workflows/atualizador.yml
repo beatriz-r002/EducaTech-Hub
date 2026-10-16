@@ -2,19 +2,22 @@ name: Atualizar Lista do Mercado Livre
 
 on:
   schedule:
-    # Roda todos os dias às 08:00 da manhã (horário UTC)
     - cron: '0 8 * * *'
-  workflow_dispatch: # Permite que você também rode manualmente quando quiser pelo GitHub
+  workflow_dispatch:
+
+# Permissão essencial para o robô conseguir dar o git push de volta no repositório
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Copiar código do repositório
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configurar Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
