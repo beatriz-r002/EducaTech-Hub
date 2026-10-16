@@ -13,7 +13,7 @@ def extrair_lista_afiliado():
     
     with sync_playwright() as p:
         # Iniciamos com headless=False para você ver o navegador abrindo
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
         
         try:

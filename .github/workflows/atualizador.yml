@@ -5,13 +5,12 @@ on:
     - cron: '0 8 * * *'
   workflow_dispatch:
 
-# Permissão essencial para o robô conseguir dar o git push de volta no repositório
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Copiar código do repositório
         uses: actions/checkout@v4
