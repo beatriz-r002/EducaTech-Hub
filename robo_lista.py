@@ -1,33 +1,44 @@
 import json
 import os
+import re
+import unicodedata
 from playwright.sync_api import sync_playwright
 
 ARQUIVO_JSON = "produtos.json"
 # Cole aqui o link final completo da sua lista aberta no navegador
 URL_MINHA_LISTA = "https://meli.la/1xpoNCD"
 
+def normalizar_texto(texto):
+    texto = unicodedata.normalize("NFD", str(texto).casefold())
+    texto = "".join(caractere for caractere in texto if unicodedata.category(caractere) != "Mn")
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", texto).split())
+
+
 def definir_categoria(titulo):
-    titulo_lower = titulo.lower()
-    
-    # 1. 🎲 Jogos (Lazer, xadrez, puzzles, tabuleiros)
-    if any(palavra in titulo_lower for palavra in ["jogo", "xadrez", "cubo", "puzzle", "tabuleiro", "quebra-cabeça", "baralho"]):
-        return "jogos"
-        
-    # 2. ✨ Visual & Estilo (Exclusivo para acessórios de uso pessoal)
-    elif any(palavra in titulo_lower for palavra in ["relogio", "relógio", "oculos", "óculos", "boina", "chapeu", "chapéu", "bolsa", "mochila", "carteira", "pulseira", "colar"]):
-        return "visual"
-        
-    # 3. ⚡ Alta Performance (Tecnologia, hardware e produtividade)
-    elif any(palavra in titulo_lower for palavra in ["teclado", "mouse", "headset", "fone", "ssd", "hub", "monitor", "kindle", "suporte para notebook", "webcam", "microfone", "pendrive", "cabo", "processador", "memoria"]):
-        return "alta performance"
-        
-    # 4. 🏛️ Arquitetura de Mesa (Papelaria, organização, ergonomia E iluminação/decoração da mesa)
-    elif any(palavra in titulo_lower for palavra in ["estojo", "organizador", "caderno", "suporte", "mesa", "fichario", "agenda", "planner", "caneta", "bloco", "luminaria", "luminária", "led", "rgb", "lampada", "decoracao", "decoração", "neon", "quadro"]):
-        return "arquitetura de mesa"
-        
-    # Padrão para itens gerais
-    else:
-        return "recentes"
+    titulo_normalizado = normalizar_texto(titulo)
+    regras = (
+        ("jogos", ("jogo", "jogos", "xadrez", "cubo magico", "puzzle", "puzzles", "quebra cabeca", "quebra cabecas", "tabuleiro", "tabuleiros", "baralho")),
+        ("visual", ("relogio", "relogios", "oculos", "boina", "boinas", "chapeu", "chapeus", "bolsa", "bolsas", "mochila", "mochilas", "carteira", "carteiras", "pulseira", "pulseiras", "colar", "colares")),
+        ("alta performance", (
+            "teclado", "teclados", "mouse", "mouses", "headset", "headsets", "fone", "fones", "ssd", "ssds", "hub", "hubs", "monitor", "monitores", "kindle",
+            "ereader", "e reader", "leitor digital", "leitores digitais", "suporte para notebook", "suporte para notebooks", "webcam", "webcams",
+            "microfone", "microfones", "pendrive", "pendrives", "pen drive", "cabo", "cabos", "processador", "processadores", "memoria", "tablet", "tablets", "laptop", "laptops", "notebook", "notebooks"
+        )),
+        ("arquitetura de mesa", (
+            "estojo", "estojos", "organizador", "organizadores", "caderno", "cadernos", "suporte de mesa", "suportes de mesa", "suporte para celular", "suporte de celular",
+            "fichario", "ficharios", "agenda", "agendas", "planner", "planners", "caneta", "canetas", "bloco", "blocos",
+            "marca texto", "marcador", "marcadores", "lapis", "anotacao", "anotacoes", "luminaria", "luminarias", "abajur", "abajures",
+            "lampada", "lampadas", "decoracao", "neon", "quadro", "quadros", "papelaria"
+        )),
+    )
+
+    for categoria, palavras in regras:
+        for palavra in palavras:
+            palavra_normalizada = normalizar_texto(palavra)
+            if f" {palavra_normalizada} " in f" {titulo_normalizado} ":
+                return categoria
+
+    return "revisar"
 
 def extrair_lista_afiliado():
     print("🤖 Iniciando o robô para varrer a sua lista do Mercado Livre...")
@@ -102,7 +113,7 @@ def extrair_lista_afiliado():
                         "precoAtual": preco_atual,
                         "imagem": imagem if imagem else "",
                         "link": link if link else "",
-                        "categoria": "quentes recentes"
+                        "categoria": definir_categoria(titulo)
                     }
                     novos_produtos.append(produto)
                 except Exception:
