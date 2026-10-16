@@ -6,6 +6,29 @@ ARQUIVO_JSON = "produtos.json"
 # Cole aqui o link final completo da sua lista aberta no navegador
 URL_MINHA_LISTA = "https://meli.la/1xpoNCD"
 
+def definir_categoria(titulo):
+    titulo_lower = titulo.lower()
+    
+    # 1. 🎲 Jogos (Lazer, xadrez, puzzles, tabuleiros)
+    if any(palavra in titulo_lower for palavra in ["jogo", "xadrez", "cubo", "puzzle", "tabuleiro", "quebra-cabeça", "baralho"]):
+        return "jogos"
+        
+    # 2. ✨ Visual & Estilo (Exclusivo para acessórios de uso pessoal)
+    elif any(palavra in titulo_lower for palavra in ["relogio", "relógio", "oculos", "óculos", "boina", "chapeu", "chapéu", "bolsa", "mochila", "carteira", "pulseira", "colar"]):
+        return "visual"
+        
+    # 3. ⚡ Alta Performance (Tecnologia, hardware e produtividade)
+    elif any(palavra in titulo_lower for palavra in ["teclado", "mouse", "headset", "fone", "ssd", "hub", "monitor", "kindle", "suporte para notebook", "webcam", "microfone", "pendrive", "cabo", "processador", "memoria"]):
+        return "alta performance"
+        
+    # 4. 🏛️ Arquitetura de Mesa (Papelaria, organização, ergonomia E iluminação/decoração da mesa)
+    elif any(palavra in titulo_lower for palavra in ["estojo", "organizador", "caderno", "suporte", "mesa", "fichario", "agenda", "planner", "caneta", "bloco", "luminaria", "luminária", "led", "rgb", "lampada", "decoracao", "decoração", "neon", "quadro"]):
+        return "arquitetura de mesa"
+        
+    # Padrão para itens gerais
+    else:
+        return "recentes"
+
 def extrair_lista_afiliado():
     print("🤖 Iniciando o robô para varrer a sua lista do Mercado Livre...")
     
@@ -35,10 +58,12 @@ def extrair_lista_afiliado():
             
             for card in cards:
                 try:
-                    titulo = card.locator("h2, .poly-component__title, .ui-search-item__title").inner_text()
+                    # Tenta pegar o título usando várias opções possíveis do layout do Mercado Livre
+                    titulo_el = card.locator("h2, h3, a.poly-component__title, .poly-component__title, .ui-search-item__title").first
+                    titulo = titulo_el.inner_text().strip() if titulo_el.count() > 0 else "Produto Mercado Livre"
                     
-                    # No Mercado Livre, o preço atual (promocional/destacado) geralmente fica dentro de .poly-price__current
-                    # Vamos buscar especificamente o bloco de preço atual
+                    if not titulo:
+                        titulo = "Produto Mercado Livre"
                     bloco_preco_atual = card.locator(".poly-price__current, .ui-search-price__second-line").first
                     
                     parte_inteira_atual = bloco_preco_atual.locator(".andes-money-amount__fraction").inner_text().replace(".", "")
