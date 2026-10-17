@@ -47,7 +47,8 @@ def extrair_lista_afiliado():
     
     with sync_playwright() as p:
         # Iniciamos com headless=False para você ver o navegador abrindo
-        browser = p.chromium.launch(headless=False)
+        modo_headless = os.getenv("PLAYWRIGHT_HEADLESS", "").strip().lower() in {"1", "true", "yes"}
+        browser = p.chromium.launch(headless=modo_headless)
         page = browser.new_page()
         
         try:
