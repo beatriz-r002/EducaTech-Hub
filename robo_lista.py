@@ -5,8 +5,8 @@ import unicodedata
 from playwright.sync_api import sync_playwright
 
 ARQUIVO_JSON = "produtos.json"
-# Cole aqui o link final completo da sua lista aberta no navegador
-URL_MINHA_LISTA = "https://meli.la/1xpoNCD"
+# URL canonica da lista publica para evitar erro no redirect do link curto no CI
+URL_MINHA_LISTA = "https://www.mercadolivre.com.br/social/bean2177813/lists/df2c9d9a-a538-4536-861f-3a720feea4dc?forceInApp=true"
 
 def normalizar_texto(texto):
     texto = unicodedata.normalize("NFD", str(texto).casefold())
@@ -49,7 +49,10 @@ def extrair_lista_afiliado():
         # Iniciamos com headless=False para você ver o navegador abrindo
         modo_headless = os.getenv("PLAYWRIGHT_HEADLESS", "").strip().lower() in {"1", "true", "yes"}
         browser = p.chromium.launch(headless=modo_headless)
-        page = browser.new_page()
+        versao_chrome = browser.version.split(".")[0]
+        user_agent = f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{versao_chrome}.0.0.0 Safari/537.36"
+        page = browser.new_page(user_agent=user_agent, locale="pt-BR")
+        page.set_extra_http_headers({"Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"})
         
         try:
             print(f"Acessando a página e aguardando carregamento...")
@@ -60,7 +63,22 @@ def extrair_lista_afiliado():
             print("Buscando produtos na tela...")
             page.wait_for_timeout(3000)
             
-            cards = page.locator(".poly-card, .ui-search-layout__item, .andes-card").all()
+            seletor_cards = ".poly-card, .ui-search-layout__item, .andes-card"
+            cards_locator = page.locator(seletor_cards)
+            tentativas_sem_novos = 0
+            for tentativa in range(8):
+                quantidade_antes = cards_locator.count()
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.wait_for_timeout(1500)
+                quantidade_depois = cards_locator.count()
+                if quantidade_depois > quantidade_antes:
+                    print(f"Rolagem {tentativa + 1}: {quantidade_antes} -> {quantidade_depois} cards")
+                    tentativas_sem_novos = 0
+                else:
+                    tentativas_sem_novos += 1
+                if tentativas_sem_novos >= 2:
+                    break
+            cards = cards_locator.all()
             
             if not cards:
                 print("Nenhum card padrao encontrado; salvando screenshot para diagnostico...")
