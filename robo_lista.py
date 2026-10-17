@@ -13,7 +13,6 @@ def normalizar_texto(texto):
     texto = "".join(caractere for caractere in texto if unicodedata.category(caractere) != "Mn")
     return " ".join(re.sub(r"[^a-z0-9]+", " ", texto).split())
 
-
 def definir_categoria(titulo):
     titulo_normalizado = normalizar_texto(titulo)
     regras = (
@@ -41,23 +40,34 @@ def definir_categoria(titulo):
     return "revisar"
 
 def extrair_lista_afiliado():
-    print("🤖 Iniciando o robô para varrer a sua lista do Mercado Livre...")
+    print("🤖 Iniciando o robô em Modo Turbo...")
     
     novos_produtos = []
     
     with sync_playwright() as p:
+        # Mantemos headless=False para você ver o teste (ou True se preferir oculto)
         browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+        context = browser.new_context()
+        
+        # 🚀 BLOQUEIO TURBO: Bloqueia imagens, fontes e estilos para a página voar
+        def bloquear_recursos(route):
+            if route.request.resource_type in ["image", "stylesheet", "font", "media"]:
+                route.abort()
+            else:
+                route.continue_()
+                
+        context.route("**/*", bloquear_recursos)
+        page = context.new_page()
         
         try:
-            print(f"Acessando a página e aguardando carregamento...")
-            page.goto(URL_MINHA_LISTA, timeout=60000, wait_until="networkidle")
+            print(f"Acessando a página em alta velocidade...")
+            page.goto(URL_MINHA_LISTA, timeout=60000, wait_until="domcontentloaded")
             
             pagina_atual = 1
             
             while True:
                 print(f"📄 Lendo os produtos da página {pagina_atual}...")
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(2000) # Tempo de espera reduzido graças ao turbo
                 
                 cards = page.locator(".poly-card, .ui-search-layout__item, .andes-card").all()
                 
@@ -97,10 +107,13 @@ def extrair_lista_afiliado():
                         if preco_antigo <= preco_atual:
                             preco_antigo = round(preco_atual * 1.15, 2)
 
-                        link = card.locator("a").first.get_attribute("href")
+                        # Como as imagens foram bloqueadas no carregamento da página,
+                        # pegamos o link direto do atributo src/data-src da tag img do card
                         imagem = card.locator("img").first.get_attribute("src")
-                        if not imagem:
+                        if not imagem or "data:image" in imagem:
                             imagem = card.locator("img").first.get_attribute("data-src")
+
+                        link = card.locator("a").first.get_attribute("href")
 
                         produto = {
                             "titulo": titulo,
@@ -111,23 +124,22 @@ def extrair_lista_afiliado():
                             "categoria": definir_categoria(titulo)
                         }
                         
-                        # Evita duplicatas caso o mesmo card seja lido duas vezes
                         if produto not in novos_produtos:
                             novos_produtos.append(produto)
                             
                     except Exception:
                         continue
 
-                # Verifica se existe o botão "Seguinte" para ir para a próxima página
+                # Navegação para a próxima página
                 botao_seguinte = page.locator("li.andes-pagination__button--next:not([aria-disabled='true']) a, a.andes-pagination__link:has-text('Seguinte')").first
                 
                 if botao_seguinte.count() > 0 and page.locator("li.andes-pagination__button--next").is_visible():
-                    print("➡️ Indo para a próxima página da lista...")
+                    print("➡️ Indo para a próxima página...")
                     botao_seguinte.click()
-                    page.wait_for_load_state("networkidle")
+                    page.wait_for_load_state("domcontentloaded")
                     pagina_atual += 1
                 else:
-                    print("🏁 Chegamos à última página da lista!")
+                    print("🏁 Fim das páginas da lista!")
                     break
                     
         except Exception as e:
@@ -139,13 +151,13 @@ def extrair_lista_afiliado():
         atualizar_json(novos_produtos)
     else:
         print("⚠️ Nenhum produto foi extraído com sucesso.")
-        
+
 def atualizar_json(novos):
-    # Sobrescreve o JSON garantindo que só fiquem os itens atuais da sua lista
     with open(ARQUIVO_JSON, "w", encoding="utf-8") as f:
         json.dump(novos, f, ensure_ascii=False, indent=4)
     
-    print(f"✨ Sucesso! O arquivo produtos.json foi sincronizado com {len(novos)} produtos da sua lista.")
+    print(f"✨ Sucesso! O arquivo produtos.json foi sincronizado com {len(novos)} produtos em Modo Turbo.")
 
 if __name__ == "__main__":
     extrair_lista_afiliado()
+    
