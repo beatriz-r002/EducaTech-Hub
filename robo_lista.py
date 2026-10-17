@@ -55,16 +55,22 @@ def extrair_lista_afiliado():
             print(f"Acessando a página e aguardando carregamento...")
             page.goto(URL_MINHA_LISTA, timeout=60000, wait_until="networkidle")
             
-            print("Página aberta com sucesso! Buscando produtos na tela...")
+            print("Página aberta. URL final:", page.url)
+            print("Título da página:", page.title())
+            print("Buscando produtos na tela...")
             page.wait_for_timeout(3000)
             
             cards = page.locator(".poly-card, .ui-search-layout__item, .andes-card").all()
             
             if not cards:
-                print("⚠️ Nenhum card padrão encontrado. Tirando print para diagnóstico...")
+                print("Nenhum card padrao encontrado; salvando screenshot para diagnostico...")
                 page.screenshot(path="erro_pagina.png")
-                print("Um print 'erro_pagina.png' foi salvo na pasta.")
-                return
+                try:
+                    texto_visivel = page.locator("body").inner_text()
+                    print("Texto visivel recebido pelo navegador:", repr(texto_visivel[:1000]))
+                except Exception as diagnostico:
+                    print("Nao foi possivel ler o texto visivel:", diagnostico)
+                raise RuntimeError("Nenhum card de produto foi encontrado; produtos.json nao sera alterado.")
 
             print(f"Encontrados {len(cards)} produtos. Extraindo dados...")
             
@@ -117,18 +123,19 @@ def extrair_lista_afiliado():
                         "categoria": definir_categoria(titulo)
                     }
                     novos_produtos.append(produto)
-                except Exception:
-                    continue
+                except Exception as erro:
+                    raise RuntimeError(f"Falha ao extrair um cartao: {erro}") from erro
                     
         except Exception as e:
             print(f"❌ Erro ao acessar ou raspar a página: {e}")
+            raise
         finally:
             browser.close()
 
     if novos_produtos:
         atualizar_json(novos_produtos)
     else:
-        print("⚠️ Nenhum produto foi extraído com sucesso.")
+        raise RuntimeError("Nenhum produto foi extraido; produtos.json nao foi alterado.")
 
 def atualizar_json(novos):
     # Sobrescreve o JSON garantindo que só fiquem os itens atuais da sua lista

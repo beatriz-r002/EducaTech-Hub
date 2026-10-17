@@ -31,7 +31,17 @@ jobs:
           PLAYWRIGHT_HEADLESS: "true"
         run: python robo_lista.py
 
+      - name: Anexar screenshot de diagnostico
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostico-robo-${{ github.run_id }}
+          path: erro_pagina.png
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Salvar alteracoes no GitHub
+        if: github.ref == 'refs/heads/main'
         run: |
           if git diff --quiet -- produtos.json; then
             echo "Sem alteracoes em produtos.json; nada a commitar."
