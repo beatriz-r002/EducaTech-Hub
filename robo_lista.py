@@ -5,8 +5,8 @@ import unicodedata
 from playwright.sync_api import sync_playwright
 
 ARQUIVO_JSON = "produtos.json"
-# Cole aqui o link final completo da sua lista aberta no navegador
-URL_MINHA_LISTA = "https://meli.la/1xpoNCD"
+# URL canonica da lista publica para evitar erro no redirect do link curto no CI
+URL_MINHA_LISTA = "https://www.mercadolivre.com.br/social/bean2177813/lists/df2c9d9a-a538-4536-861f-3a720feea4dc?forceInApp=true"
 
 def normalizar_texto(texto):
     texto = unicodedata.normalize("NFD", str(texto).casefold())
