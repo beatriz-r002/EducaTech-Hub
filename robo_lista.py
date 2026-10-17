@@ -2,6 +2,7 @@ import json
 import os
 import re
 import unicodedata
+import urllib.request
 from playwright.sync_api import sync_playwright
 
 ARQUIVO_JSON = "produtos.json"
@@ -40,8 +41,28 @@ def definir_categoria(titulo):
 
     return "revisar"
 
+def diagnosticar_acesso_http():
+    """Prova temporaria para separar bloqueio de navegador de bloqueio de rede no CI."""
+    requisicao = urllib.request.Request(
+        URL_MINHA_LISTA,
+        headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        },
+    )
+    try:
+        with urllib.request.urlopen(requisicao, timeout=30) as resposta:
+            html = resposta.read().decode("utf-8", errors="replace")
+            print("Diagnostico HTTP: status", resposta.status, "URL final:", resposta.geturl())
+            print("Diagnostico HTTP: marcadores poly-card:", html.count("poly-card"))
+            print("Diagnostico HTTP: pagina de erro:", "Hubo un error accediendo a esta pagina" in html)
+    except Exception as erro:
+        print("Diagnostico HTTP falhou:", type(erro).__name__, str(erro))
+
+
 def extrair_lista_afiliado():
     print("🤖 Iniciando o robô para varrer a sua lista do Mercado Livre...")
+    diagnosticar_acesso_http()
     
     novos_produtos = []
     
