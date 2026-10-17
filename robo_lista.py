@@ -63,7 +63,22 @@ def extrair_lista_afiliado():
             print("Buscando produtos na tela...")
             page.wait_for_timeout(3000)
             
-            cards = page.locator(".poly-card, .ui-search-layout__item, .andes-card").all()
+            seletor_cards = ".poly-card, .ui-search-layout__item, .andes-card"
+            cards_locator = page.locator(seletor_cards)
+            tentativas_sem_novos = 0
+            for tentativa in range(8):
+                quantidade_antes = cards_locator.count()
+                page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                page.wait_for_timeout(1500)
+                quantidade_depois = cards_locator.count()
+                if quantidade_depois > quantidade_antes:
+                    print(f"Rolagem {tentativa + 1}: {quantidade_antes} -> {quantidade_depois} cards")
+                    tentativas_sem_novos = 0
+                else:
+                    tentativas_sem_novos += 1
+                if tentativas_sem_novos >= 2:
+                    break
+            cards = cards_locator.all()
             
             if not cards:
                 print("Nenhum card padrao encontrado; salvando screenshot para diagnostico...")
